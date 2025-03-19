@@ -11,14 +11,20 @@ server = app.server  # Required for deployment
 # Define the CSV file path
 DATA_FILE = "user_data.csv"
 
-# 📌 Load existing data from CSV on startup
+# Load existing data from CSV on startup
 if os.path.exists(DATA_FILE):
     user_data = pd.read_csv(DATA_FILE)
-    user_data.columns = user_data.columns.str.strip()  # Remove accidental spaces from column names
-    if user_data.empty or not all(col in user_data.columns for col in ["Age", "Income", "Racial_Broad", "Racial_Specific", "Gender", "Continent", "Country"]):
-        user_data = pd.DataFrame(columns=["Age", "Income", "Racial_Broad", "Racial_Specific", "Gender", "Continent", "Country"])
 else:
     user_data = pd.DataFrame(columns=["Age", "Income", "Racial_Broad", "Racial_Specific", "Gender", "Continent", "Country"])
+
+# Ensure numeric values are correctly formatted
+user_data["Age"] = pd.to_numeric(user_data["Age"], errors="coerce")
+user_data["Income"] = pd.to_numeric(user_data["Income"], errors="coerce")
+
+# Initialize stored data
+app.layout = html.Div([
+    dcc.Store(id="stored-data", data=user_data.to_dict("records")),  # Stores existing data
+])
 
 
 # Persistent dataset to store user submissions
@@ -205,24 +211,20 @@ def store_user_data(n_clicks, stored_data, age, income, racial_broad, racial_spe
 # Update Scatterplots
 @app.callback(
     Output("global_scatterplot", "figure"),
-    Input("stored-data", "data")
+    Input("stored-data", "data")  # Triggers update when new data is submitted
 )
 def update_global_scatterplot(stored_data):
-    if not stored_data:
-        return px.scatter(title="Income Distribution (No Data Yet)")
-
-    # Convert stored_data (dict) back into a DataFrame
-    df = pd.DataFrame(stored_data)
-
-    # Debugging: Print available columns
-    print("Columns in DataFrame:", df.columns)
-
-    # Check if 'Age' exists before applying numeric conversion
-    if "Age" in df.columns and "Income" in df.columns:
-        df["Age"] = pd.to_numeric(df["Age"], errors="coerce")
-        df["Income"] = pd.to_numeric(df["Income"], errors="coerce")
+    if os.path.exists(DATA_FILE):
+        df = pd.read_csv(DATA_FILE)  # Load updated data
     else:
-        print("⚠️ Warning: 'Age' or 'Income' not found in dataset.")
+        df = pd.DataFrame(columns=["Age", "Income", "Racial_Broad", "Racial_Specific", "Gender", "Continent", "Country"])
+
+    # Debugging: Print dataset after loading
+    print("Updated Data for Scatterplot:\n", df.head())
+
+    # Ensure Age and Income are numeric
+    df["Age"] = pd.to_numeric(df["Age"], errors="coerce")
+    df["Income"] = pd.to_numeric(df["Income"], errors="coerce")
 
     if df.empty or "Age" not in df.columns or "Income" not in df.columns:
         return px.scatter(title="Income Distribution (No Data Yet)")
@@ -233,6 +235,35 @@ def update_global_scatterplot(stored_data):
         labels={"Age": "Age", "Income": "Income ($)", "Racial_Broad": "Broad Race Category"},
         hover_data=["Racial_Specific", "Gender", "Continent", "Country"]
     )
+
+@app.callback(
+    [
+        Output("filter_continent", "options"),
+        Output("filter_country", "options"),
+        Output("filter_race_broad", "options"),
+        Output("filter_race_specific", "options"),
+        Output("filter_gender", "options"),
+    ],
+    Input("stored-data", "data")
+)
+def update_filter_options(stored_data):
+    if not stored_data:
+        return [[], [], [], [], []]  # No data available, return empty dropdowns
+
+    df = pd.DataFrame(stored_data)
+
+    # Ensure valid columns exist before calling .unique()
+    options = {
+        "Continent": [{"label": c, "value": c} for c in sorted(df["Continent"].dropna().unique())] if "Continent" in df.columns else [],
+        "Country": [{"label": c, "value": c} for c in sorted(df["Country"].dropna().unique())] if "Country" in df.columns else [],
+        "Racial_Broad": [{"label": r, "value": r} for r in sorted(df["Racial_Broad"].dropna().unique())] if "Racial_Broad" in df.columns else [],
+        "Racial_Specific": [{"label": r, "value": r} for r in sorted(df["Racial_Specific"].dropna().unique())] if "Racial_Specific" in df.columns else [],
+        "Gender": [{"label": g, "value": g} for g in sorted(df["Gender"].dropna().unique())] if "Gender" in df.columns else []
+    }
+
+    return options["Continent"], options["Country"], options["Racial_Broad"], options["Racial_Specific"], options["Gender"]
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
