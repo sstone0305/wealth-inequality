@@ -98,6 +98,33 @@ app.layout = html.Div([
     # 📌 Data Storage
     dcc.Store(id="stored-data", data=user_data.to_dict("records")),
 
+    # 📌 Wealth Inequality Section
+    html.H3("Understanding Wealth Inequality"),
+    html.Div([
+        html.P(
+            "Wealth inequality refers to the uneven distribution of financial assets, income, and opportunities across "
+            "different groups in society. While some level of economic disparity is natural, extreme wealth inequality "
+            "has profound implications for social mobility, economic stability, and political influence."
+        ),
+        html.P(
+            "Wealth inequality arises from multiple factors, including income disparities, generational wealth, access to "
+            "financial markets, and differences in education quality. The richest 1% of the world owns nearly half of global wealth, "
+            "while the bottom 50% collectively own less than 2%. Countries with high levels of inequality often experience lower "
+            "social mobility, making it difficult for individuals from lower-income backgrounds to improve their economic standing."
+        ),
+        html.P(
+            "The consequences of extreme wealth inequality include reduced economic growth, increased social unrest, and disproportionate "
+            "political influence by the wealthy. Policies such as progressive taxation, universal basic income, and investments in education "
+            "and healthcare have been proposed as ways to reduce these disparities."
+        ),
+        html.P(
+            "For further reading, refer to:\n"
+            "Piketty, T. (2014). 'Capital in the Twenty-First Century.' Harvard University Press\n"
+            "Stiglitz, J. (2012). 'The Price of Inequality.' W.W. Norton & Company\n"
+            "Credit Suisse Global Wealth Report (2022)."
+        ),
+    ], style={"margin-bottom": "30px"}),
+
     # 📌 User Input Section
     html.H3("Submit Your Data"),
     
